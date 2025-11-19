@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일제시기 낙동강 개발재난 타임라인</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0d1a26; /* Dark Blue Gray */
+            color: #e2e8f0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #1e293b; /* Slate 800 */
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        .timeline-item {
+            position: relative;
+            padding: 10px 0 10px 40px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            border-left: 3px solid #334155; /* Slate 700 */
+            border-radius: 4px;
+        }
+        .timeline-item:hover {
+            background-color: #334155; /* Slate 700 */
+            transform: translateX(5px);
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #f87171; /* Red 400 - Default marker */
+            border: 2px solid #0d1a26;
+        }
+        .timeline-item.active {
+            background-color: #334155; 
+            border-left-color: #f87171; /* Highlight active item */
+        }
+        .timeline-item.active::before {
+            background-color: #fcd34d; /* Amber 400 - Highlight active marker */
+            border-width: 4px;
+        }
+        .year-title {
+            position: absolute;
+            left: -50px;
+            top: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #94a3b8; /* Slate 400 */
+        }
+        .event-detail-box {
+            background-color: #0f172a; /* Slate 900 */
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        }
+        .event-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #3b82f6; /* Blue 500 */
+            margin-bottom: 10px;
+        }
+        .detail-section h4 {
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            border-bottom: 1px dashed #334155;
+            padding-bottom: 2px;
+        }
+        .detail-section p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #cbd5e1; /* Slate 300 */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="flex items-center justify-between mb-8 pb-3 border-b border-gray-600">
+            <h1 class="text-3xl font-extrabold text-blue-400">
+                낙동강 하천개수사업 타임라인
+            </h1>
+            <!-- 시각화 페이지로 돌아가는 버튼 -->
+            <button onclick="window.location.href='nakdong_disaster_viz.html';" 
+                    class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition shadow-md">
+                개발 재난 시각화 보기
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- 타임라인 리스트 (왼쪽 1/3) -->
+            <div id="timelineList" class="md:col-span-1 pr-4">
+                <!-- 아이템들이 여기에 렌더링 됩니다. -->
+            </div>
+
+            <!-- 세부 내용 표시 (오른쪽 2/3) -->
+            <div id="eventDetail" class="md:col-span-2">
+                <div class="event-detail-box">
+                    <div id="detailTitle" class="event-title"></div>
+                    <div id="detailContent" class="text-sm">
+                        <!-- 세부 설명이 여기에 표시됩니다. -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const timelineData = {
+            1926: {
+                title: "낙동강 치수사업 시작",
+                event: "주요 6개 하천 중 가장 큰 규모의 10개년 계속사업 본격 시행 (예산 약 1,750만 원).",
+                detail: [
+                    {
+                        heading: "사업 배경",
+                        content: "잦은 홍수와 한해로 농업 경영이 불안정했던 낙동강 유역의 농업 증산과 식민지 조선의 생활 안정을 명목으로 시작됨."
+                    },
+                    {
+                        heading: "핵심 공사 계획",
+                        content: "낙동강 하류부 치수가 중심이었으며, 이후 지역 사회의 찬반 논쟁을 낳은 '일천식공사'가 주요 안건으로 논의되기 시작함."
+                    },
+                    {
+                        heading: "비용 부담 구조",
+                        content: "직할하천 원칙에도 불구하고, 임시특별세인 하천부담금(개수몽리부담금)을 통해 비용의 상당 부분을 지역사회가 부담하게 됨."
+                    }
+                ]
+            },
+            1930: {
+                title: "일천식공사 착공 및 논쟁 심화",
+                event: "총독부가 비용 절감을 이유로 '일천식' (두 개 천을 하나로 합치는 체절공사) 변경 결정.",
+                detail: [
+                    {
+                        heading: "일천식 개요",
+                        content: "낙동강 하류의 구포와 하동면 쪽 두 갈래 강물 중 하동면 쪽(서낙동강)을 인위적으로 막고 구포 쪽 강폭을 넓히는 특종공사. 막대한 예산이 소요되었으나, 총독부는 비용 절감 효과를 주장하며 강행."
+                    },
+                    {
+                        heading: "지역민 피해 (하천부담금)",
+                        content: "김해 등 8개 면에 과중한 하천부담금 약 81만 4천원 부과. 이는 완공 후 얻을 수익에 대한 '수익세' 명목이었으나, 주민들은 이중, 삼중의 부담이라며 반대 진정."
+                    },
+                    {
+                        heading: "지역민 피해 (토지 수용)",
+                        content: "1,200호 중 800여 호, 4,025명이 '몇 푼 안 되는 이전료'에 원치 않는 이주를 강요받았으며, 낮은 토지 가격과 조선인/일본인 간 보상액 차별 등의 피해 발생."
+                    }
+                ]
+            },
+            1933: {
+                title: "공사 지연 및 불완전으로 대홍수 피해",
+                event: "불완전한 공사 상황으로 낙동강 하류부에 홍수 피해 발생. 주민들은 '단순 재해 아닌 개발재난'이라 주장.",
+                detail: [
+                    {
+                        heading: "1933년 수해 양상",
+                        content: "6월 말 폭우로 대저면 제방이 무너져 맥도리 300여 호 침수. 3천여 정보 유실, 4만여 정보 침수. (피해액 약 1,363만 원)"
+                    },
+                    {
+                        heading: "원인과 대응",
+                        content: "주민들은 일천식공사의 '상·하류 동시 체절 미흡' 등 공사 불비를 원인으로 손해배상 청구 진정. 당국도 공사 불비가 원인임을 간접적으로 인정하고 준공을 서두름."
+                    },
+                ]
+            },
+            1934: {
+                title: "전례 없는 대홍수(개발재난)와 국고보상",
+                event: "7월 대홍수로 낙동강 유역 수해 피해액이 최종 공사비(약 1,996만원)를 초과 (피해액 약 2,265만 원).",
+                detail: [
+                    {
+                        heading: "1934년 수해 양상",
+                        content: "7월 기록적 폭우로 사망자 133명, 가옥 침수 및 붕괴, 토지/농작물 피해 등 총 2,265만 원의 막대한 피해 발생."
+                    },
+                    {
+                        heading: "개발재난 인정",
+                        content: "피해 규모가 최종 공사비를 초과. 언론 및 인천관측소의 과학적 분석은 일천식공사를 수해의 근본 원인으로 지목. 일제의 '무리한 인위적 개발이 낳은 인재(人災)'로 결론."
+                    },
+                    {
+                        heading: "재난 구제와 동원",
+                        content: "총독부는 최초로 국고보상(약 13만 원)을 시행했으나 미흡했고, 재해 복구 명목 하에 이재민들을 저임금 구궁토목공사에 동원. 실상은 식민지민의 '노동력 동원'의 성격이 강했음."
+                    }
+                ]
+            },
+            1935: {
+                title: "타임라인 결론: 일제와 지역 사회의 상반된 결과",
+                event: "총독부는 일천식안 유지 및 보강 결정. 지역 사회는 영구적인 피해와 부담을 안게 됨.",
+                detail: [
+                    {
+                        heading: "일천식 유지 결정",
+                        content: "임시치수조사위원회를 통해 일천식공사 보강안이 최종 결정. 피해 주민의 경험적 요구보다 '총독부의 위신'과 '예산 문제'가 우선적으로 고려된 결과."
+                    },
+                    {
+                        heading: "지역 사회의 최종 부담",
+                        content: "개발로 인해 생겨난 노전(蘆田)의 옥야(沃野)는 대부분 가쿠이치, 하자마 등 일본인 대지주들의 소유로 들어갔으며, 조선인 농민들은 피해와 부담만 떠안게 됨."
+                    }
+                ]
+            }
+        };
+
+        const timelineList = document.getElementById('timelineList');
+        const detailTitleEl = document.getElementById('detailTitle');
+        const detailContentEl = document.getElementById('detailContent');
+        let activeYear = null;
+
+        function updateDetail(year) {
+            const data = timelineData[year];
+            if (!data) return;
+
+            detailTitleEl.textContent = `${year}년: ${data.title}`;
+            let htmlContent = `<p class="text-lg font-medium mb-3 text-red-300">${data.event}</p>`;
+            
+            data.detail.forEach(section => {
+                htmlContent += `<div class="detail-section mt-4"><h4>${section.heading}</h4><p>${section.content}</p></div>`;
+            });
+            
+            detailContentEl.innerHTML = htmlContent;
+            
+            // 클래스 업데이트
+            document.querySelectorAll('.timeline-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.year == year) {
+                    item.classList.add('active');
+                }
+            });
+
+            activeYear = year;
+        }
+
+        function createTimeline() {
+            for (const year in timelineData) {
+                const item = timelineData[year];
+                const itemEl = document.createElement('div');
+                itemEl.className = 'timeline-item';
+                itemEl.dataset.year = year;
+                itemEl.innerHTML = `
+                    <div class="year-title">${year}</div>
+                    <div class="font-semibold text-white">${item.title}</div>
+                    <div class="text-sm text-gray-400">${item.event}</div>
+                `;
+                itemEl.onclick = () => updateDetail(year);
+                timelineList.appendChild(itemEl);
+            }
+            // 첫 번째 연도를 기본값으로 표시
+            updateDetail(Object.keys(timelineData)[0]);
+        }
+
+        createTimeline();
+    </script>
+</body>
+</html>
