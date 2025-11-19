@@ -1,1 +1,302 @@
 # TAEJI
++ <!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일제시기 낙동강 개발재난 시각화</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0d1a26; /* Dark Blue Gray */
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: #1e293b; /* Slate 800 */
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        canvas {
+            background-color: #0f172a; /* Slate 900 for canvas */
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            background-color: #334155; /* Slate 700 */
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #3b82f6; /* Blue 500 */
+        }
+        .timeline-slider {
+            -webkit-appearance: none;
+            width: 90%;
+            height: 8px;
+            background: #5e6d87;
+            outline: none;
+            opacity: 0.9;
+            transition: opacity .2s;
+            border-radius: 4px;
+        }
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #f87171; /* Red 400 */
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(248, 113, 113, 0.8);
+        }
+        .metric-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center mb-6 text-red-300">
+            일제시기 낙동강 '개발 재난' 시각화
+        </h1>
+        <p class="text-center text-sm mb-6 text-gray-400">
+            (논문: 일제시기 낙동강 하천개발공사로 인한 개발재난과 구제동원)
+        </p>
+        
+        <!-- 현재 연도 및 이벤트 표시 -->
+        <div class="mb-6 flex justify-between items-center bg-gray-700/50 p-3 rounded-lg">
+            <h2 id="currentYear" class="text-2xl font-extrabold text-blue-300">1926년</h2>
+            <div id="currentEvent" class="text-lg font-medium text-amber-300">치수사업 시작</div>
+        </div>
+
+        <!-- 시뮬레이션 캔버스 -->
+        <canvas id="disasterVizCanvas" width="940" height="350" class="w-full"></canvas>
+
+        <!-- 타임라인 슬라이더 -->
+        <div class="flex flex-col items-center mb-6">
+            <input type="range" min="1926" max="1934" value="1926" step="1" class="timeline-slider" id="yearSlider">
+            <div class="w-11/12 mt-2 flex justify-between text-xs text-gray-400">
+                <span>1926 (사업 시작)</span>
+                <span>1930 (일천식 착공)</span>
+                <span>1933 (수해 발생)</span>
+                <span>1934 (대홍수 재난)</span>
+            </div>
+        </div>
+        
+        <!-- 데이터 및 설명 박스 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="info-box">
+                <h3 class="text-xl font-semibold mb-2 text-white">재난/비용 규모 비교</h3>
+                <p id="costDamageText" class="text-sm font-light leading-relaxed"></p>
+                <div class="mt-3">
+                    <span class="metric-label">총 공사비 (최종, 1938년 목표):</span> <span id="finalCost" class="text-green-400 font-bold"></span>
+                </div>
+                <div>
+                    <span class="metric-label">1934년 낙동강 수해 피해액:</span> <span id="damageAmount" class="text-red-400 font-bold"></span>
+                </div>
+            </div>
+
+            <div class="info-box border-left-5 border-yellow-500">
+                <h3 class="text-xl font-semibold mb-2 text-white">지역 사회 부담</h3>
+                <p id="burdenText" class="text-sm font-light leading-relaxed"></p>
+                <div class="mt-3">
+                    <span class="metric-label">김해 지역 하천부담금 (8개 면):</span> <span id="localBurden" class="text-amber-400 font-bold"></span>
+                </div>
+                <div>
+                    <span class="metric-label">특징:</span> <span class="text-xs text-gray-300">공사비 20% 이내 지방비 분담, 수익세 명목 전가</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('disasterVizCanvas');
+        const ctx = canvas.getContext('2d');
+        const yearSlider = document.getElementById('yearSlider');
+        const currentYearEl = document.getElementById('currentYear');
+        const currentEventEl = document.getElementById('currentEvent');
+        const costDamageTextEl = document.getElementById('costDamageText');
+        const burdenTextEl = document.getElementById('burdenText');
+        const finalCostEl = document.getElementById('finalCost');
+        const damageAmountEl = document.getElementById('damageAmount');
+        const localBurdenEl = document.getElementById('localBurden');
+
+        // 반응형 캔버스 크기 조정
+        function resizeCanvas() {
+            const containerWidth = canvas.parentElement.clientWidth;
+            canvas.width = containerWidth;
+            canvas.height = 350;
+            drawVisualization(parseInt(yearSlider.value));
+        }
+        window.addEventListener('resize', resizeCanvas);
+        
+        // 데이터 (논문 기반)
+        const projectData = {
+            initialCost: 17500000, // 1926년 초기 예산
+            finalCost: 19967205,   // 최종 할당액 (원)
+            damage1934: 22653085,  // 1934년 낙동강 수해액 (원)
+            localBurden: 814154,   // 김해 8개 면 부담금 (원)
+            events: {
+                1926: { event: "치수사업 시작 (10개년 계속사업)", cost: 17500000, damage: 0, burden: 0, 
+                        desc_cost: "최초 총 예산 약 1,750만 원. 주요 6개 하천 중 최대 규모. 치수와 농업 증진 목표.",
+                        desc_burden: "원칙은 국고 부담이었으나, 임시특별세(하천부담금)를 통해 지역사회에 비용 전가 구조 형성."
+                      },
+                1930: { event: "일천식공사 착공 및 논쟁 심화", cost: 17500000, damage: 0, burden: 814154, 
+                        desc_cost: "총독부는 비용 절감 효과를 이유로 막대한 예산이 필요한 '일천식' (두 개 천을 하나로 합치는 공사)을 결정.",
+                        desc_burden: "김해 등 8개 면에 과중한 하천부담금 약 81만 4천원 부과. 낮은 보상가, 이전 강요, 조선인 차별 등의 피해 발생."
+                      },
+                1933: { event: "공사 지연으로 인한 홍수 피해 발생", cost: 17500000, damage: 13634815, burden: 814154, 
+                        desc_cost: "불완전한 공사 상황으로 인해 낙동강 하류부에 대홍수 피해 발생. 주민들은 '단순 재해 아닌 개발재난'이라 주장.",
+                        desc_burden: "피해 지역 주민들은 일천식공사 불비를 원인으로 손해배상 청구 진정."
+                      },
+                1934: { event: "전례 없는 대홍수(개발재난) 발생", cost: 19967205, damage: 22653085, burden: 814154, 
+                        desc_cost: "낙동강 유역 수해 피해액 2,265만 원으로 최종 공사비(약 1,996만원)를 초과. 개발 목표보다 재난 규모가 더 컸음.",
+                        desc_burden: "총독부는 최초로 국고보상을 시행했으나 터무니없이 적은 금액이었고, 재해 복구 명목 하에 이재민을 저임금 구궁토목공사에 동원."
+                      }
+            }
+        };
+
+        // 데이터 포맷팅 함수
+        function formatWon(amount) {
+            return (amount / 10000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "만 원";
+        }
+
+        // 시각화 그리기 함수
+        function drawVisualization(year) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const data = projectData.events[year] || projectData.events[1926];
+            const maxVal = Math.max(projectData.finalCost, projectData.damage1934);
+            const scale = canvas.height / (maxVal * 1.2); // 스케일 조정
+
+            const barWidth = 60;
+            const gap = 40;
+            let xOffset = (canvas.width / 2) - barWidth - (gap / 2);
+
+            // === 1. 개발/재난 규모 비교 시각화 ===
+
+            // 1-1. 총 공사비 막대 (초록)
+            const costHeight = data.cost * scale;
+            const costX = xOffset;
+            const costY = canvas.height - costHeight;
+            
+            ctx.fillStyle = '#10b981'; // Emerald 500
+            ctx.fillRect(costX, costY, barWidth, costHeight);
+
+            // 1-2. 1934년 피해액 막대 (빨강) - 현재 연도에 따라 점진적 표시
+            const damageVal = (year === 1933 || year === 1934) ? projectData.damage1934 : 0;
+            const currentDamage = year >= 1933 ? data.damage : 0;
+
+            let damageHeight = 0;
+            if (year === 1934) {
+                 damageHeight = damageVal * scale;
+            } else if (year === 1933) {
+                 damageHeight = projectData.events[1933].damage * scale;
+            }
+
+            const damageX = costX + barWidth + gap;
+            const damageY = canvas.height - damageHeight;
+            
+            ctx.fillStyle = '#ef4444'; // Red 500
+            ctx.fillRect(damageX, damageY, barWidth, damageHeight);
+
+            // 텍스트 레이블
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '14px Noto Sans KR';
+            ctx.textAlign = 'center';
+
+            ctx.fillText('총 공사비', costX + barWidth / 2, canvas.height - costHeight - 10);
+            ctx.fillText(formatWon(data.cost), costX + barWidth / 2, canvas.height - costHeight + 15);
+            
+            if (damageHeight > 0) {
+                ctx.fillText('수해 피해액 (1934)', damageX + barWidth / 2, canvas.height - damageHeight - 10);
+                ctx.fillText(formatWon(damageVal), damageX + barWidth / 2, canvas.height - damageHeight + 15);
+            }
+
+            // === 2. 지역 부담 시각화 (막대 아래 텍스트) ===
+            ctx.textAlign = 'left';
+            ctx.font = '14px Noto Sans KR';
+            const burdenTextY = 50;
+            let burdenColor = '#fcd34d'; // Amber 400
+
+            ctx.fillText(`지역 부담금 (김해 8개 면):`, 50, burdenTextY);
+
+            // 부담금 막대
+            const burdenBarLength = (data.burden / maxVal) * (canvas.width * 0.4); // 화면 너비에 상대적으로 표현
+            
+            if (data.burden > 0) {
+                 ctx.fillStyle = burdenColor;
+                 ctx.fillRect(50, burdenTextY + 10, burdenBarLength, 20);
+                 ctx.fillStyle = '#1e293b';
+                 ctx.fillText(formatWon(data.burden), 55, burdenTextY + 25);
+            }
+
+            // 최대치 기준선
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - (maxVal * scale) - 20);
+            ctx.lineTo(canvas.width, canvas.height - (maxVal * scale) - 20);
+            ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'right';
+            ctx.fillText(`최대 기준 (${formatWon(maxVal)})`, canvas.width - 20, canvas.height - (maxVal * scale) - 25);
+
+
+            // === 3. 타임라인 마커 ===
+            const timelineY = canvas.height - 10;
+            const years = [1926, 1930, 1933, 1934];
+            years.forEach(y => {
+                const markX = (canvas.width * (y - 1926) / (1934 - 1926));
+                ctx.fillStyle = y <= year ? '#f87171' : '#334155';
+                ctx.beginPath();
+                ctx.arc(markX, timelineY, 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // 슬라이더 이벤트 핸들러
+        yearSlider.addEventListener('input', function() {
+            const year = parseInt(this.value);
+            currentYearEl.textContent = `${year}년`;
+            updateUI(year);
+        });
+
+        // UI 업데이트
+        function updateUI(year) {
+            const data = projectData.events[year];
+            if (!data) return;
+
+            // 이벤트 표시
+            currentEventEl.textContent = data.event;
+            
+            // 데이터 박스 업데이트
+            finalCostEl.textContent = formatWon(projectData.finalCost);
+            damageAmountEl.textContent = formatWon(year === 1934 ? projectData.damage1934 : 0);
+            localBurdenEl.textContent = formatWon(projectData.localBurden);
+            
+            costDamageTextEl.innerHTML = data.desc_cost;
+            burdenTextEl.innerHTML = data.desc_burden;
+
+            // 캔버스 그리기
+            drawVisualization(year);
+        }
+
+        // 초기화
+        resizeCanvas();
+        updateUI(1926);
+
+    </script>
+</body>
+</html>
