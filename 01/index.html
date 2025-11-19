@@ -66,12 +66,21 @@
 <body>
 
     <div class="container">
-        <h1 class="text-3xl font-bold text-center mb-6 text-red-300">
-            일제시기 낙동강 '개발 재난' 시각화
-        </h1>
-        <p class="text-center text-sm mb-6 text-gray-400">
+        <!-- 제목 및 버튼 영역 시작 -->
+        <div class="flex items-center justify-center mb-6">
+            <h1 class="text-3xl font-bold text-center text-red-300 mr-4">
+                일제시기 낙동강 '개발 재난' 시각화
+            </h1>
+            <!-- 버튼 추가 -->
+            <button onclick="window.location.href='timeline.html';" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition shadow-md">
+                타임라인 보기
+            </button>
+        </div>
+        <p class="text-center text-sm mb-6 -mt-4 text-gray-400">
             (논문: 일제시기 낙동강 하천개발공사로 인한 개발재난과 구제동원)
         </p>
+        <!-- 제목 및 버튼 영역 끝 -->
         
         <!-- 현재 연도 및 이벤트 표시 -->
         <div class="mb-6 flex justify-between items-center bg-gray-700/50 p-3 rounded-lg">
